@@ -14,6 +14,8 @@ int main(int ac, char **argv)
             if (strncmp(argv[1], "install", 7) == 0)
             {
                 __ft_install_service();
+                if (!StartServiceCtrlDispatcher( DispatchTable ))
+                    SvcReportEvent(TEXT("StartServiceCtrlDispatcher"));  
                 std::cout << "Service {tinky} installed successfully" << std::endl;
                 return (0);
             }

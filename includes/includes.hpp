@@ -2,7 +2,7 @@
 #define INCLUDES__HPP
 
 #include "./service.hpp"
-// #include "./keylogger.hpp"
+#include "./keylogger.hpp"
 
 #include <iostream>
 

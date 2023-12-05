@@ -215,7 +215,7 @@ void __ft_start_service(void)
     CloseServiceHandle(schSCManager);
 }
 
-BOOL __ft_stopDependentServices(void)
+static BOOL __ft_stopDependentServices(void)
 {
     DWORD i;
     DWORD dwBytesNeeded;

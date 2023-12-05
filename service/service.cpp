@@ -19,13 +19,12 @@ void __ft_install_service(void)
     TCHAR szPath[MAX_PATH];
     StringCbPrintf(szPath, MAX_PATH, TEXT("\"%s\""), szUnquotedPath);
 
-    // Get a handle to the SCM database. 
- 
+    // Get a handle to the SCM database.
     schSCManager = OpenSCManager( 
         NULL,                    // local computer
         NULL,                    // ServicesActive database 
         SC_MANAGER_ALL_ACCESS);  // full access rights 
- 
+
     if (NULL == schSCManager) 
     {
         printf("OpenSCManager failed (%d)\n", GetLastError());
